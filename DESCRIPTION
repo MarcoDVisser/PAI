@@ -1,0 +1,13 @@
+Package: PAI
+Type: Package
+Title: tools for quantifying canopy sctructure from lidar
+Version: 0.1.0
+Date: 2019-03-21
+Author: Marco D. Visser
+Maintainer: Marco D. Visser <marco.d.visser@gmail.com>
+Description: Collection of tools for working with large
+    LiDAR datasets (>120 million points) in R.
+License: GPL (>= 2)
+URL: http://github.com/MarcoDVisser/PAI
+BugReports: http://github.com/MarcoDVisser/PAI/issues
+RoxygenNote: 5.0.1

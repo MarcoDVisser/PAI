@@ -3,9 +3,14 @@
 ##' @param(z) 1-D vector of vertical coordinates
 ##' @param(A) 1-D vector of scan angles
 ##' @param(zi) 1-D vector of discrete z-axis at which leaf area density will be computed
+##' vectors is expected to have a fixed step size (dzi). 
 ##' @param(lad) leaf inclination model ('planophile','erectophile','spherical', or user defined)
 ##' @param(ai)  scan angle (optional for re-computing leaf area density with different leaf inclination)
 ##' @param(verbose) logical: sends signs of life?
+##' @import sp
+##' @import raster
+##' @import raster
+##' @import SearchTrees
 ##' @export
 getPAI <- function(z,A,zi,ai,lad="spherical",verbose=FALSE){
 
@@ -83,12 +88,15 @@ getPAI <- function(z,A,zi,ai,lad="spherical",verbose=FALSE){
 ##'
 ##' @param(xyz) matrix point cloud with x,y, and z coordinates
 ##' @param(qtr) quadtree of xyz
-##' @shpfile a SpatialPolygonsDataFrame to subset the point cloud
+##' @param(shpfile) a SpatialPolygonsDataFrame to subset the point cloud
 ##' only the first polygon is used if multiple polygons are
+##' @param(return.index) logical, return row index for shapefile
+##' from xyz
 ##' present
-##' @imports sp
-##' @imports raster
-shapesXYZ <- function(xyz,qtr,shpfile){
+##' @import sp
+##' @import raster
+##' @export
+shapesXYZ <- function(xyz,qtr,shpfile,return.index=FALSE){
 
     if(length(shpfile@polygons)>1){
         warning("Only the first polygon selected")
@@ -102,6 +110,7 @@ shapesXYZ <- function(xyz,qtr,shpfile){
         if(length(tmp)>0){
 
             boxp <- as.data.frame.matrix(xyz[tmp,])
+            if(return.index) boxp$ind <- tmp
             coordinates(boxp) <- ~ x + y
             proj4string(boxp) <- proj4string(shpfile)
             final <- boxp[shpfile,]
@@ -115,6 +124,44 @@ shapesXYZ <- function(xyz,qtr,shpfile){
 
 }
 
+
+##'  Extract index of point cloud that are within a shapefile
+##'  
+##' @param(xyz) matrix point cloud with x,y, and z coordinates
+##' @param(qtr) quadtree of xyz
+##' @param(shpfile) a SpatialPolygonsDataFrame to subset the point cloud
+##' only the first polygon is used if multiple polygons are
+##' present
+##' @import sp
+##' @import raster
+##' @export
+indexFromShape <- function(xyz,qtr,class="class",shpfile){
+
+    if(length(shpfile@polygons)>1){
+        warning("Only the first polygon selected")
+    }
+
+    xy <- apply(shpfile@polygons[[1]]@Polygons[[1]]@coords,2,range)
+
+        tmp <- rectLookup(qtr,xlims=c(xy[1,1],xy[2,1]),
+                          ylims=c(xy[1,2],xy[2,2]))
+        
+        if(length(tmp)>0){
+
+            boxp <- as.data.frame.matrix(xyz[tmp,])
+            boxp$ind <- tmp
+            coordinates(boxp) <- ~ x + y
+            proj4string(boxp) <- proj4string(shpfile)
+            final <- boxp[shpfile,]@data$tmp
+        } else {
+
+
+            stop("location contains no points")
+        }
+
+    return(final)
+
+}
 
 
 
@@ -141,7 +188,7 @@ shapesXYZ <- function(xyz,qtr,shpfile){
 ##' @param(lad) character: leaf angle distribution (uses radians)
 ##' @param(zi) vector of vertical coordinates (height)
 ##' @param(par) = optional parameters to fit the beta
-
+##' @export
 Gfunction <- function(lad="spherical",ze,zi, par){ 
 
     ze <- abs(ze)*pi/180
@@ -191,7 +238,7 @@ Gfunction <- function(lad="spherical",ze,zi, par){
             mu <- par[1]
             nu <- par[2]
             tx <- 2*th/pi
-             dtx <- diff(tx)[1]
+            dtx <- diff(tx)[1]
 
         for(i in seq_along(zi)){
             
